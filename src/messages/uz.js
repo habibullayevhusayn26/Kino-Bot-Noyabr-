@@ -30,8 +30,7 @@ module.exports = {
     '🎬 Kino kodi yoki nomi bilan qidiring.\n' +
     '🎭 Janr, 🆕 yangi, 🏆 top, 🎲 tasodifiy kinolar va ❤️ sevimlilar ro‘yxatidan foydalaning.\n' +
     '❤️ Kerakli kino kartasida sevimlilarga qo‘shish/o‘chirish funksiyasi bor.\n' +
-    '📢 Majburiy kanallarga obuna bo‘lishingiz shart bo‘lishi mumkin.\n\n' +
-    '🛠 Adminlar uchun: kinolarni qo‘shish/tahrirlash/o‘chirish, foydalanuvchilarni boshqarish, statistika, obuna va broadcast.',
+    '📢 Majburiy kanallarga obuna bo‘lishingiz shart bo‘lishi mumkin.',
   noAccess: '⛔ Bu amal uchun ruxsatingiz yo‘q.',
   adminAddMovieMedia: '🎬 1/7. Videoni yuboring yoki saqlash kanalidan forward qiling.',
   adminAddMovieInvalidMedia: '⚠️ Video yoki video fayl yuboring.',

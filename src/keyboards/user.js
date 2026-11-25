@@ -27,8 +27,9 @@ function movieCardKeyboard(movie, favorite = false, botUsername = '') {
   const deepLink = username
     ? `https://t.me/${username}?start=movie_${encodeURIComponent(String(movie.code))}`
     : '';
+  const shareText = `🎬 ${movie.title}\n▶️ Kinoni ko'rish`;
   const shareUrl = deepLink
-    ? `https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(`🎬 ${movie.title}\nKinoni ko'rish`)}`
+    ? `https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(shareText)}`
     : 'https://t.me/share';
   return styledInlineKeyboard([
     [

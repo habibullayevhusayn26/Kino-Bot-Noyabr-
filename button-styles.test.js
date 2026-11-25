@@ -55,6 +55,8 @@ test('movie sharing uses a deep link without inline query mode', () => {
     decodeURIComponent(shareButton.url).includes('https://t.me/movie_demo_bot?start=movie_42'),
     true
   );
+  assert.equal(decodeURIComponent(shareButton.url).includes('🎬 Test kino'), true);
+  assert.equal(decodeURIComponent(shareButton.url).includes("▶️ Kinoni ko'rish"), true);
   assert.equal(shareButton.switch_inline_query, undefined);
   assert.equal(shareButton.switch_inline_query_current_chat, undefined);
 });
