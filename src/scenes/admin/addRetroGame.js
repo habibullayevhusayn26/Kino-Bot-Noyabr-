@@ -2,6 +2,7 @@ const { Markup, Scenes } = require('telegraf');
 const messages = require('../../messages/uz');
 const retroGameService = require('../../services/retroGameService');
 const { storeTelegramMedia } = require('../../services/mediaStorageService');
+const { toPremiumEmojiMarkup } = require('../../utils/premiumEmoji');
 
 function createAddRetroGameScene({ canManageMovies, getStorageChannelId, logger = console }) {
   const scene = new Scenes.WizardScene(
@@ -51,10 +52,11 @@ function createAddRetroGameScene({ canManageMovies, getStorageChannelId, logger 
       }
       ctx.wizard.state.code = code;
       ctx.wizard.next();
-      const preview =
+      const preview = toPremiumEmojiMarkup(
         `${messages.adminRetroConfirm}\n` +
         `🆔 Kod: ${code}\n📅 Sana: ${escapeHtml(ctx.wizard.state.date)}\n` +
-        `⚽ O'yin: ${escapeHtml(ctx.wizard.state.title)}`;
+        `⚽ O'yin: ${escapeHtml(ctx.wizard.state.title)}`
+      );
       const keyboard = {
         reply_markup: {
           inline_keyboard: [

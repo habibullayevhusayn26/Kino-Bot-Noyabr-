@@ -298,7 +298,10 @@ function adminKeyboard(ctx) {
       Markup.button.callback("📚 Kinolar ro'yxati", 'admin:movie:list')
     ]);
   if (can('movies'))
-    rows.push([Markup.button.callback('⚽ Retro o‘yin qo‘shish', 'admin:retro:add')]);
+    rows.push([
+      Markup.button.callback('⚽ Retro o‘yin qo‘shish', 'admin:retro:add'),
+      Markup.button.callback('⚽ Retro o‘yinlar ro‘yxati', 'admin:retro:list')
+    ]);
   if (can('users')) rows.push([Markup.button.callback('👤 Foydalanuvchilar', 'admin:users')]);
   if (can('stats')) rows.push([Markup.button.callback('📊 Statistika', 'admin:stats')]);
   if (can('broadcast')) rows.push([Markup.button.callback('📣 Xabar yuborish', 'admin:broadcast')]);

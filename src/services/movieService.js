@@ -1,4 +1,4 @@
-const { Movie, MovieCounter, Favorite, Genre } = require('../models');
+const { Movie, RetroGame, MovieCounter, Favorite, Genre } = require('../models');
 const { createNgrams, normalizeSearchText, scoreTitleMatch } = require('../utils/searchText');
 
 const SEARCH_CANDIDATE_LIMIT = 60;
@@ -102,6 +102,19 @@ async function updateMovie(code, updates) {
 }
 
 async function changeMovieCode(currentCode, newCode) {
+  const current = Number(currentCode);
+  const next = Number(newCode);
+  if (current !== next) {
+    const [movie, game] = await Promise.all([
+      Movie.findOne({ code: next }).select({ _id: 1 }).lean(),
+      RetroGame.findOne({ code: next }).select({ _id: 1 }).lean()
+    ]);
+    if (movie || game) {
+      const error = new Error('Movie code is already used');
+      error.code = 11000;
+      throw error;
+    }
+  }
   return Movie.findOneAndUpdate(
     { code: Number(currentCode) },
     { $set: { code: Number(newCode) } },

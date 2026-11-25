@@ -36,7 +36,7 @@ function registerUserHandlers(bot, { isAdmin, logger = console }) {
     const options = {
       caption: messages.retroGameCaption(game),
       parse_mode: 'HTML',
-      protect_content: true
+      protect_content: !isAdmin(ctx)
     };
     const sender = game.mediaType === 'document' ? 'sendDocument' : 'sendVideo';
     await retryAfterLimit(() => ctx.telegram[sender](chatId, game.fileId, options));
@@ -55,7 +55,7 @@ function registerUserHandlers(bot, { isAdmin, logger = console }) {
     const options = {
       caption: messages.movieCaption(movie, (movie.views || 0) + 1),
       parse_mode: 'HTML',
-      protect_content: true,
+      protect_content: !isAdmin(ctx),
       reply_markup: keyboards.movieCardKeyboard(movie, favorite, ctx.botInfo?.username).reply_markup
     };
     const sender = movie.mediaType === 'document' ? 'sendDocument' : 'sendVideo';

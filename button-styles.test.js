@@ -3,7 +3,7 @@ const test = require('node:test');
 const { Markup } = require('telegraf');
 const { homeKeyboard, retroGamesKeyboard } = require('./src/keyboards/user');
 const { styledInlineKeyboard, styledReplyKeyboard } = require('./src/keyboards/styled');
-const { stripCustomEmoji, toPremiumEmojiMarkup } = require('./src/utils/premiumEmoji');
+const { stripCustomEmoji } = require('./src/utils/premiumEmoji');
 const messages = require('./src/messages/uz');
 
 test('inline buttons receive semantic Telegram button styles', () => {

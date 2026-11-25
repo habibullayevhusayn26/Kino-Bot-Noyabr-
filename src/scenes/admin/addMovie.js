@@ -3,6 +3,7 @@ const messages = require('../../messages/uz');
 const { styledInlineKeyboard } = require('../../keyboards/styled');
 const movieService = require('../../services/movieService');
 const { storeTelegramMedia } = require('../../services/mediaStorageService');
+const { toPremiumEmojiMarkup } = require('../../utils/premiumEmoji');
 
 function createAddMovieScene({ canManageMovies, getStorageChannelId, logger = console }) {
   const scene = new Scenes.WizardScene(
@@ -94,13 +95,15 @@ function createAddMovieScene({ canManageMovies, getStorageChannelId, logger = co
 
       ctx.wizard.state.description = description === '-' ? '' : description;
       ctx.wizard.state.code = await movieService.getNextMovieCode();
-      const preview = messages.adminAddMovieConfirm
+      const preview = toPremiumEmojiMarkup(
+        messages.adminAddMovieConfirm
         .replace('{code}', String(ctx.wizard.state.code))
         .replace('{title}', escapeHtml(ctx.wizard.state.title))
         .replace('{genre}', escapeHtml(ctx.wizard.state.genre))
         .replace('{year}', String(ctx.wizard.state.year))
         .replace('{language}', escapeHtml(ctx.wizard.state.language))
-        .replace('{quality}', escapeHtml(ctx.wizard.state.quality));
+        .replace('{quality}', escapeHtml(ctx.wizard.state.quality))
+      );
       const keyboard = styledInlineKeyboard([
         [Markup.button.callback(messages.adminAddMovieSave, 'admin:movie:add:save')],
         [Markup.button.callback(messages.adminAddMovieCancel, 'admin:movie:add:cancel')]
