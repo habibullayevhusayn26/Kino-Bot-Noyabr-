@@ -781,6 +781,14 @@ bot.use(async (ctx, next) => {
 bot.use(session({ store: persistentSessionStore }));
 
 bot.use(async (ctx, next) => {
+  const payload = String(ctx.startPayload || '').trim();
+  if (/^movie_\d+$/.test(payload) && ctx.session) {
+    ctx.session.pendingMoviePayload = payload;
+  }
+  return next();
+});
+
+bot.use(async (ctx, next) => {
   const reply = ctx.reply.bind(ctx);
   ctx.reply = (text, extra = {}) => {
     const formattedText = typeof text === 'string' ? toPremiumEmojiMarkup(text) : text;
@@ -839,6 +847,34 @@ bot.start(handleStart);
 bot.action('check_subscription', async (ctx) => {
   await ctx.answerCbQuery();
   if (await requiredSubscription(ctx)) {
+    const payload = String(ctx.session?.pendingMoviePayload || '').trim();
+    ctx.session.pendingMoviePayload = undefined;
+    const match = /^movie_(\d+)$/.exec(payload);
+    if (match) {
+      const movie = await movieService.findMovieByCode(match[1]);
+      if (!movie) return ctx.reply(messages.movieNotFound);
+      const chatId = ctx.chat?.id || ctx.from?.id;
+      const favorite = await favoriteService.isFavorite(ctx.from.id, movie._id);
+      const options = {
+        caption: messages.movieCaption(movie, (movie.views || 0) + 1),
+        parse_mode: 'HTML',
+        protect_content: true,
+        reply_markup: movieCardKeyboard(
+          movie,
+          favorite,
+          ctx.botInfo?.username || bot.botInfo?.username
+        ).reply_markup
+      };
+      const sender = movie.mediaType === 'document' ? 'sendDocument' : 'sendVideo';
+      await retryAfterLimit(() => ctx.telegram[sender](chatId, movie.fileId, options));
+      await movieService.incrementMovieViews(movie._id).catch((error) => {
+        logger.error(
+          { err: error, movieId: String(movie._id) },
+          'Could not increment movie view count'
+        );
+      });
+      return;
+    }
     return ctx.reply(
       formatMessage(messages.welcome, ctx),
       replyOptions(welcomeMarkup(ctx) || userKeyboard(ctx).reply_markup)
