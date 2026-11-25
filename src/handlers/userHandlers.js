@@ -218,7 +218,7 @@ function registerUserHandlers(bot, { isAdmin, getRequiredChannels, logger = cons
           const username = String(channel.username || '').replace(/^@/, '');
           const url = channel.inviteLink || (username ? `https://t.me/${username}` : '');
           return url
-                ? [
+            ? [
                 Markup.button.url(
                   `📢 Kanal ${index + 1}: ${channel.title || channel.username}`,
                   url

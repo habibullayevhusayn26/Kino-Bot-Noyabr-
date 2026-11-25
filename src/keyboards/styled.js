@@ -13,13 +13,13 @@ function styleRows(rows) {
   return rows.map((row) =>
     row.map((button) => {
       const styledButton = typeof button === 'string' ? { text: button } : { ...button };
+      if (!['primary', 'success', 'danger'].includes(styledButton.style)) {
+        styledButton.style = buttonStyle(styledButton);
+      }
       const customEmoji = findCustomEmoji(styledButton.text);
       if (customEmoji && !styledButton.icon_custom_emoji_id) {
         styledButton.icon_custom_emoji_id = customEmoji.id;
         styledButton.text = styledButton.text.replace(customEmoji.matchedText, '').trim();
-      }
-      if (!['primary', 'success', 'danger'].includes(styledButton.style)) {
-        styledButton.style = buttonStyle(styledButton);
       }
       return styledButton;
     })

@@ -52,7 +52,7 @@ const customEmojis = Object.freeze({
   '🚪': '5974506040828366250',
   '🛠': '5215392879320505675',
   '🟢': '5393585776736889461',
-  'ℹ️': '5258503720928288433',
+  ℹ️: '5258503720928288433',
   '🆔': '5280783172286582731',
   '🆕': '4918438965029110683'
 });
@@ -83,9 +83,7 @@ function toPremiumEmojiMarkup(value) {
       return [...segmenter.segment(part)]
         .map(({ segment }) => {
           const match = customEmojisByNormalizedForm.get(normalizeEmoji(segment));
-          return match
-            ? `<tg-emoji emoji-id="${match.id}">${match.emoji}</tg-emoji>`
-            : segment;
+          return match ? `<tg-emoji emoji-id="${match.id}">${match.emoji}</tg-emoji>` : segment;
         })
         .join('');
     })
