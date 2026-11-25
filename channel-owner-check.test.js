@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { verifyAdminChannel } = require('./src/services/channelService');
+const { verifyAdminChannel, approveChannelJoinRequest } = require('./src/services/channelService');
 
 test('required channel setup only succeeds when the requesting user and bot are admins', async () => {
   const calls = [];
@@ -84,4 +84,35 @@ test('storage channel verification does not create an invite link', async () => 
   });
   assert.equal(chat.inviteLink, '');
   assert.equal(inviteCreated, false);
+});
+
+test('chat join request is approved and welcome message is sent', async () => {
+  const calls = [];
+  const telegram = {
+    async approveChatJoinRequest(chatId, userId) {
+      calls.push(['approve', chatId, userId]);
+    },
+    async sendMessage(userId, text, options) {
+      calls.push(['message', userId, text, options]);
+    }
+  };
+
+  const result = await approveChannelJoinRequest(
+    telegram,
+    {
+      chat: { id: -1001234567890 },
+      from: { id: 77 }
+    },
+    {
+      welcomeText: 'Kanal tasdiqlandi',
+      replyMarkup: { keyboard: [] }
+    }
+  );
+
+  assert.deepEqual(result, { chatId: -1001234567890, userId: 77 });
+  assert.deepEqual(calls[0], ['approve', -1001234567890, 77]);
+  assert.equal(calls[1][0], 'message');
+  assert.equal(calls[1][1], 77);
+  assert.equal(calls[1][2], 'Kanal tasdiqlandi');
+  assert.deepEqual(calls[1][3], { parse_mode: 'HTML', reply_markup: { keyboard: [] } });
 });

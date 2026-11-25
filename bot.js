@@ -37,7 +37,7 @@ const {
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
-const allowedUpdates = ['message', 'callback_query'];
+const allowedUpdates = ['message', 'callback_query', 'chat_join_request'];
 const webhookPath = `/webhook/${config.webhookSecret || 'unconfigured'}`;
 const chatPickerRequestIds = { requiredChannel: 76001, requiredGroup: 76002, storage: 76003 };
 const channelAdminRights = {
@@ -85,6 +85,34 @@ app.get('/health', (req, res) =>
 );
 
 const bot = new Telegraf(config.botToken);
+
+bot.on('chat_join_request', async (ctx) => {
+  const joinRequest = ctx.update?.chat_join_request;
+  if (!joinRequest) return;
+
+  const name = joinRequest.from?.first_name || joinRequest.from?.username || 'foydalanuvchi';
+  const welcomeText = toPremiumEmojiMarkup(
+    `✅ Kanalga qo‘shilish so‘rovingiz tasdiqlandi.\n\n👋 Xush kelibsiz, ${name}!\n🎬 Kino kodini yuboring yoki menyudan kino tanlang.`
+  );
+
+  try {
+    await retryAfterLimit(() =>
+      channelService.approveChannelJoinRequest(ctx.telegram, joinRequest, {
+        welcomeText,
+        replyMarkup: homeKeyboard(false).reply_markup
+      })
+    );
+  } catch (error) {
+    logger.error(
+      {
+        err: error,
+        chatId: joinRequest.chat?.id,
+        telegramId: joinRequest.from?.id
+      },
+      'Could not approve chat join request'
+    );
+  }
+});
 const ADMIN_TG_ID = config.admin.telegramId;
 const ADMIN_TG_IDS = new Set(config.admin.telegramIds);
 const adminPermissions = ['movies', 'users', 'broadcast', 'stats', 'settings', 'admins'];

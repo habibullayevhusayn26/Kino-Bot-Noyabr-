@@ -121,11 +121,33 @@ async function clearRequiredChannels() {
   return result.deletedCount;
 }
 
+async function approveChannelJoinRequest(
+  telegram,
+  joinRequest,
+  { welcomeText = '', replyMarkup } = {}
+) {
+  const chatId = Number(joinRequest?.chat?.id);
+  const userId = Number(joinRequest?.from?.id);
+  if (!Number.isSafeInteger(chatId) || !Number.isSafeInteger(userId)) {
+    throw new Error('Invalid chat join request');
+  }
+
+  await telegram.approveChatJoinRequest(chatId, userId);
+  if (welcomeText) {
+    await telegram.sendMessage(userId, welcomeText, {
+      parse_mode: 'HTML',
+      ...(replyMarkup ? { reply_markup: replyMarkup } : {})
+    });
+  }
+  return { chatId, userId };
+}
+
 module.exports = {
   verifyAdminChannel,
   migrateLegacyRequiredChannels,
   listRequiredChannels,
   addRequiredChannel,
   removeRequiredChannel,
-  clearRequiredChannels
+  clearRequiredChannels,
+  approveChannelJoinRequest
 };
