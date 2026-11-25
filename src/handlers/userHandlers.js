@@ -136,9 +136,15 @@ function registerUserHandlers(bot, { isAdmin, logger = console }) {
     const games = await retroGameService.listLatestRetroGames(10);
     if (!games.length) return ctx.reply(messages.retroEmpty);
     ctx.session.retroGames = games;
-    return ctx.reply('⚽ <b>Oxirgi 10 ta retro futbol o‘yini</b>\n\nRaqamni tanlang:', {
+    const list = games
+      .map(
+        (game, index) =>
+          `${index + 1}. ${escapeHtml(game.title)}${game.date ? ` — ${escapeHtml(game.date)}` : ''}`
+      )
+      .join('\n');
+    return ctx.reply(`⚽ <b>Oxirgi 10 ta retro futbol o‘yini</b>\n\n${list}\n\nRaqamni tanlang:`, {
       parse_mode: 'HTML',
-      ...keyboards.retroGamesKeyboard(games).reply_markup
+      reply_markup: keyboards.retroGamesKeyboard(games).reply_markup
     });
   });
 
