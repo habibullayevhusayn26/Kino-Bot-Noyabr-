@@ -40,8 +40,25 @@ function createAddMovieScene({ canManageMovies, getStorageChannelId, logger = co
     },
     async (ctx) =>
       readTextStep(ctx, 'title', messages.adminAddMovieTitle, messages.adminAddMovieGenre, 200),
-    async (ctx) =>
-      readTextStep(ctx, 'genre', messages.adminAddMovieGenre, messages.adminAddMovieYear, 80),
+    async (ctx) => {
+      if (!canManageMovies(ctx)) return leaveUnauthorized(ctx);
+      if (ctx.wizard.state.enteringGenre) {
+        const genre = String(ctx.message?.text || '').trim();
+        if (!genre || genre.length > 80) return ctx.reply(messages.enterNewGenre);
+        ctx.wizard.state.genre = genre;
+        await movieService.addGenre(genre);
+        ctx.wizard.state.enteringGenre = false;
+        ctx.wizard.next();
+        return ctx.reply(messages.adminAddMovieYear);
+      }
+      const genres = await movieService.listGenres();
+      ctx.wizard.state.genres = genres;
+      const rows = genres.map((genre, index) => [
+        Markup.button.callback(`🎭 ${genre}`, `admin:genre:select:${index}`)
+      ]);
+      rows.push([Markup.button.callback(messages.addNewGenre, 'admin:genre:new')]);
+      return ctx.reply(messages.chooseMovieGenre, styledInlineKeyboard(rows));
+    },
     async (ctx) => {
       if (!canManageMovies(ctx)) return leaveUnauthorized(ctx);
       const year = Number(ctx.message?.text?.trim());
@@ -120,6 +137,24 @@ function createAddMovieScene({ canManageMovies, getStorageChannelId, logger = co
     await ctx.scene.leave();
     ctx.session.adminPanelActive = true;
     return ctx.reply(messages.adminAddMovieCancel);
+  });
+
+  scene.action('admin:genre:new', async (ctx) => {
+    await ctx.answerCbQuery();
+    if (!canManageMovies(ctx)) return leaveUnauthorized(ctx);
+    ctx.wizard.state.enteringGenre = true;
+    return ctx.reply(messages.enterNewGenre);
+  });
+
+  scene.action(/^admin:genre:select:(\d+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    if (!canManageMovies(ctx)) return leaveUnauthorized(ctx);
+    const genre = ctx.wizard.state.genres?.[Number(ctx.match[1])];
+    if (!genre) return ctx.reply(messages.chooseMovieGenre);
+    ctx.wizard.state.genre = genre;
+    ctx.wizard.state.enteringGenre = false;
+    ctx.wizard.next();
+    return ctx.reply(messages.adminAddMovieYear);
   });
 
   async function readTextStep(ctx, field, currentPrompt, nextPrompt, maxLength) {

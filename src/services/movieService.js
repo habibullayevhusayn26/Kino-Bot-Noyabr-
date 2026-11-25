@@ -1,4 +1,4 @@
-const { Movie, MovieCounter, Favorite } = require('../models');
+const { Movie, MovieCounter, Favorite, Genre } = require('../models');
 const { createNgrams, normalizeSearchText, scoreTitleMatch } = require('../utils/searchText');
 
 const SEARCH_CANDIDATE_LIMIT = 60;
@@ -64,12 +64,14 @@ function getSearchFields(title) {
 async function createMovie(movieData) {
   const title = String(movieData.title || '').trim();
   const code = movieData.code == null ? await getNextMovieCode() : Number(movieData.code);
-  return Movie.create({
+  const movie = await Movie.create({
     ...movieData,
     code,
     title,
     ...getSearchFields(title)
   });
+  await addGenre(movie.genre);
+  return movie;
 }
 
 async function updateMovie(code, updates) {
@@ -90,11 +92,13 @@ async function updateMovie(code, updates) {
     safeUpdates.title = String(safeUpdates.title || '').trim();
     Object.assign(safeUpdates, getSearchFields(safeUpdates.title));
   }
-  return Movie.findOneAndUpdate(
+  const movie = await Movie.findOneAndUpdate(
     { code: Number(code) },
     { $set: safeUpdates },
     { returnDocument: 'after', runValidators: true }
   ).lean();
+  if (movie?.genre) await addGenre(movie.genre);
+  return movie;
 }
 
 async function changeMovieCode(currentCode, newCode) {
@@ -154,8 +158,26 @@ async function listMoviesByGenre(genre, options = {}) {
 }
 
 async function listGenres() {
-  const genres = await Movie.distinct('genre');
-  return genres.sort((left, right) => left.localeCompare(right, 'uz'));
+  const [movieGenres, catalogGenres] = await Promise.all([
+    Movie.distinct('genre'),
+    Genre.find({}).select({ name: 1 }).lean()
+  ]);
+  const uniqueGenres = new Map();
+  for (const genre of [...movieGenres, ...catalogGenres.map((item) => item.name)]) {
+    const name = String(genre || '').trim();
+    if (name) uniqueGenres.set(name.toLocaleLowerCase('uz'), name);
+  }
+  return [...uniqueGenres.values()].sort((left, right) => left.localeCompare(right, 'uz'));
+}
+
+async function addGenre(name) {
+  const normalizedName = String(name || '').trim();
+  if (!normalizedName) return null;
+  return Genre.findOneAndUpdate(
+    { name: normalizedName },
+    { $setOnInsert: { name: normalizedName } },
+    { upsert: true, returnDocument: 'after', runValidators: true }
+  ).lean();
 }
 
 async function findRandomMovie() {
@@ -272,6 +294,7 @@ module.exports = {
   listTopMovies,
   listMoviesByGenre,
   listGenres,
+  addGenre,
   findRandomMovie,
   findRelatedMovies,
   searchMovies

@@ -5,6 +5,7 @@ module.exports = {
   Session: require('./BotSession'),
   BroadcastJob: require('./BroadcastJob'),
   Movie: require('./Movie'),
+  Genre: require('./Genre'),
   Channel: require('./Channel'),
   Favorite: require('./Favorite'),
   MovieCounter: require('./MovieCounter')

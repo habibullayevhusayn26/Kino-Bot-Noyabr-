@@ -16,6 +16,9 @@ module.exports = {
   favorites: '❤️ Sevimlilarim',
   relatedMovies: '🎬 O‘xshash kinolar',
   chooseGenre: '🎭 Janrni tanlang:',
+  chooseMovieGenre: '🎭 Kino janrini tanlang:',
+  addNewGenre: '➕ Yangi janr qo‘shish',
+  enterNewGenre: '🎭 Yangi janr nomini kiriting:',
   noGenres: 'ℹ️ Hozircha janrlar mavjud emas.',
   noMovies: '🔎 Kino topilmadi.',
   movieNotFound: '⚠️ Bu kod bo‘yicha kino topilmadi.',
@@ -23,7 +26,13 @@ module.exports = {
   favoriteRemoved: '💔 Sevimlilardan olib tashlandi.',
   emptyFavorites: '📭 Sevimlilar ro‘yxatingiz hozircha bo‘sh.',
   helpText:
-    'ℹ️ Kino kodini yuboring yoki nomi bo‘yicha qidiring. Inline qidiruv uchun bot username’sidan keyin kino nomini yozing.',
+    'ℹ️ <b>Bot imkoniyatlari</b>\n\n' +
+    '🎬 Kino kodi yoki nomi bilan qidiring.\n' +
+    '🎭 Janr, 🆕 yangi, 🏆 top, 🎲 tasodifiy kinolar va ❤️ sevimlilar ro‘yxatidan foydalaning.\n' +
+    '🔎 Har qanday chatda <code>@bot_username kino nomi</code> deb inline qidirishingiz mumkin.\n' +
+    '❤️ Kerakli kino kartasida sevimlilarga qo‘shish/o‘chirish funksiyasi bor.\n' +
+    '📢 Majburiy kanallarga obuna bo‘lishingiz shart bo‘lishi mumkin.\n\n' +
+    '🛠 Adminlar uchun: kinolarni qo‘shish/tahrirlash/o‘chirish, foydalanuvchilarni boshqarish, statistika, obuna va broadcast.',
   noAccess: '⛔ Bu amal uchun ruxsatingiz yo‘q.',
   adminAddMovieMedia: '🎬 1/7. Videoni yuboring yoki saqlash kanalidan forward qiling.',
   adminAddMovieInvalidMedia: '⚠️ Video yoki video fayl yuboring.',

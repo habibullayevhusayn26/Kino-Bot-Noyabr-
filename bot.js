@@ -823,7 +823,7 @@ bot.action('check_subscription', async (ctx) => {
 
 bot.action('help', async (ctx) => {
   await ctx.answerCbQuery();
-  return ctx.reply(configuredMessage('help', ctx), replyOptions());
+  return ctx.reply(messages.helpText, replyOptions());
 });
 
 registerUserHandlers(bot, {
@@ -1347,6 +1347,7 @@ async function startBot() {
     await Promise.all(Object.values(models).map((model) => model.init()));
     await channelService.migrateLegacyRequiredChannels();
     await hydrateSettings();
+    await configureBotCommands();
 
     if (config.renderExternalUrl) {
       bot.botInfo = await bot.telegram.getMe();
@@ -1390,6 +1391,18 @@ function warnIfInlineModeDisabled() {
       { username: bot.botInfo?.username },
       'Inline mode is disabled; enable it with /setinline in @BotFather'
     );
+  }
+}
+
+async function configureBotCommands() {
+  try {
+    await bot.telegram.setMyCommands([
+      { command: 'start', description: 'Botni ishga tushirish va asosiy menyu' },
+      { command: 'help', description: 'Bot imkoniyatlari haqida yordam' },
+      { command: 'admin', description: 'Administrator panelini ochish' }
+    ]);
+  } catch (error) {
+    logger.warn({ err: error }, 'Could not configure Telegram bot commands');
   }
 }
 

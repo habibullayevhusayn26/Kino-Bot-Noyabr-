@@ -11,6 +11,10 @@ test('existing user, admin, settings, session, and broadcast collections keep th
   assert.equal(models.BroadcastJob.collection.name, 'broadcast_jobs');
 });
 
+test('genre catalog has its own collection name', () => {
+  assert.equal(models.Genre.collection.name, 'genres');
+});
+
 test('movie schema requires Telegram media and defines code and title search indexes', () => {
   assert.equal(models.Movie.schema.path('fileId').isRequired, true);
   assert.equal(models.Movie.schema.path('code').options.unique, true);

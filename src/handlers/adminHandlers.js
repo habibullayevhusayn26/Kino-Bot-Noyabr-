@@ -110,6 +110,17 @@ function registerAdminHandlers(
       const field = ctx.match[2];
       if (!(await movieService.findMovieByCode(code)))
         return ctx.reply(messages.adminMovieNotFound);
+      if (field === 'genre') {
+        const genres = await movieService.listGenres();
+        ctx.session.editMovieCode = code;
+        ctx.session.genreChoices = genres;
+        ctx.session.step = 'admin_movie_edit_genre_choice';
+        const rows = genres.map((genre, index) => [
+          Markup.button.callback(`🎭 ${genre}`, `admin:movie:genre:${code}:${index}`)
+        ]);
+        rows.push([Markup.button.callback(messages.addNewGenre, `admin:movie:genre:new:${code}`)]);
+        return ctx.reply(messages.chooseMovieGenre, styledInlineKeyboard(rows));
+      }
       ctx.session.step = field === 'media' ? 'admin_movie_edit_media' : 'admin_movie_edit_value';
       ctx.session.editMovieCode = code;
       ctx.session.editMovieField = field;
@@ -121,6 +132,32 @@ function registerAdminHandlers(
       );
     }
   );
+
+  bot.action(/^admin:movie:genre:(\d+):(\d+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    if (!canManage(ctx, 'movies')) return ctx.reply(messages.noAccess);
+    const code = Number(ctx.match[1]);
+    const genre = ctx.session.genreChoices?.[Number(ctx.match[2])];
+    if (!genre) return ctx.reply(messages.chooseMovieGenre);
+    try {
+      const movie = await movieService.updateMovie(code, { genre });
+      ctx.session.step = undefined;
+      ctx.session.genreChoices = undefined;
+      ctx.session.editMovieCode = undefined;
+      return ctx.reply(movie ? messages.adminMovieEditSaved : messages.adminMovieNotFound);
+    } catch (error) {
+      logger.error({ err: error, telegramId: ctx.from.id }, 'Movie genre update failed');
+      return ctx.reply(messages.adminMovieSaveFailed);
+    }
+  });
+
+  bot.action(/^admin:movie:genre:new:(\d+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    if (!canManage(ctx, 'movies')) return ctx.reply(messages.noAccess);
+    ctx.session.editMovieCode = Number(ctx.match[1]);
+    ctx.session.step = 'admin_movie_edit_genre_new';
+    return ctx.reply(messages.enterNewGenre);
+  });
 
   bot.action(/^admin:movie:code:(\d+)$/, async (ctx) => {
     await ctx.answerCbQuery();
@@ -176,6 +213,21 @@ function registerAdminHandlers(
 
   bot.on('text', async (ctx, next) => {
     if (!isAdmin(ctx) || !ctx.session?.step) return next();
+    if (ctx.session.step === 'admin_movie_edit_genre_new') {
+      const genre = String(ctx.message.text || '').trim();
+      if (!genre || genre.length > 80) return ctx.reply(messages.enterNewGenre);
+      try {
+        const code = ctx.session.editMovieCode;
+        const movie = await movieService.updateMovie(code, { genre });
+        ctx.session.step = undefined;
+        ctx.session.genreChoices = undefined;
+        ctx.session.editMovieCode = undefined;
+        return ctx.reply(movie ? messages.adminMovieEditSaved : messages.adminMovieNotFound);
+      } catch (error) {
+        logger.error({ err: error, telegramId: ctx.from.id }, 'Movie genre update failed');
+        return ctx.reply(messages.adminMovieSaveFailed);
+      }
+    }
     if (ctx.session.step === 'admin_user_lookup') {
       const telegramId = Number(ctx.message.text.trim());
       if (!Number.isSafeInteger(telegramId) || telegramId <= 0) {
