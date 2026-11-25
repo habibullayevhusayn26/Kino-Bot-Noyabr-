@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: moviebot
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: DB_URI
+        sync: false
+      - key: ADMIN_TG_ID
+        sync: false
+      - key: BOT_TIMEZONE
+        value: Asia/Tashkent

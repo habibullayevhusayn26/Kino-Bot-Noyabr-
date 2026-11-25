@@ -1,0 +1,30 @@
+{
+  "name": "telegram-movie-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Telegram bot with admin tools and channel subscription management",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "cleanup:users": "node cleanup-users.js",
+    "test": "node --test",
+    "lint": "eslint .",
+    "format:check": "prettier --check \"*.js\" \"src/**/*.js\" \"*.json\" \"*.yaml\" \"*.md\""
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "mongoose": "^9.10.1",
+    "pino": "^10.4.0",
+    "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1"
+  }
+}
