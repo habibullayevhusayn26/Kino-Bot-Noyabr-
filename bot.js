@@ -25,6 +25,7 @@ const movieService = require('./src/services/movieService');
 const favoriteService = require('./src/services/favoriteService');
 const { getStatistics } = require('./src/services/statsService');
 const { createAddMovieScene } = require('./src/scenes/admin/addMovie');
+const { createAddRetroGameScene } = require('./src/scenes/admin/addRetroGame');
 const { isPollingConflict, retryAfterLimit } = require('./src/utils/telegramErrors');
 const { toPremiumEmojiMarkup } = require('./src/utils/premiumEmoji');
 const { styledInlineKeyboard, styledReplyKeyboard } = require('./src/keyboards/styled');
@@ -94,7 +95,12 @@ const addMovieScene = createAddMovieScene({
   getStorageChannelId: () => data.settings.storageChannelId,
   logger
 });
-const stage = new Scenes.Stage([addMovieScene]);
+const addRetroGameScene = createAddRetroGameScene({
+  canManageMovies: (ctx) => isAdmin(ctx) && hasPermission(ctx, 'movies'),
+  getStorageChannelId: () => data.settings.storageChannelId,
+  logger
+});
+const stage = new Scenes.Stage([addMovieScene, addRetroGameScene]);
 
 function rememberUpdate(updateId) {
   recentUpdateIds.add(updateId);
@@ -263,6 +269,8 @@ function adminKeyboard(ctx) {
       Markup.button.callback("🎬 Kino qo'shish", 'admin:movie:add'),
       Markup.button.callback("📚 Kinolar ro'yxati", 'admin:movie:list')
     ]);
+  if (can('movies'))
+    rows.push([Markup.button.callback('⚽ Retro o‘yin qo‘shish', 'admin:retro:add')]);
   if (can('users')) rows.push([Markup.button.callback('👤 Foydalanuvchilar', 'admin:users')]);
   if (can('stats')) rows.push([Markup.button.callback('📊 Statistika', 'admin:stats')]);
   if (can('broadcast')) rows.push([Markup.button.callback('📣 Xabar yuborish', 'admin:broadcast')]);
@@ -909,7 +917,8 @@ function permissionForCallback(callbackData) {
     callbackData.startsWith('admin:remove:')
   )
     return 'admins';
-  if (callbackData.startsWith('admin:movie:')) return 'movies';
+  if (callbackData.startsWith('admin:movie:') || callbackData.startsWith('admin:retro:'))
+    return 'movies';
   if (callbackData === 'admin:users' || callbackData.startsWith('admin:user:')) return 'users';
   if (callbackData.startsWith('broadcast:')) return 'broadcast';
   if (/^admin:(?:subscription|required_list|subscription_off|storage|channel:)/.test(callbackData))
@@ -927,6 +936,12 @@ bot.command('admin', (ctx) => {
   if (!isAdmin(ctx)) return ctx.reply("⛔ Ruxsat yo'q.");
   activateAdminPanel(ctx);
   return ctx.reply('🛠 Admin panel', adminKeyboard(ctx));
+});
+
+bot.action('admin:retro:add', async (ctx) => {
+  await ctx.answerCbQuery();
+  if (!hasPermission(ctx, 'movies')) return ctx.reply(messages.noAccess);
+  return ctx.scene.enter('admin-add-retro-game');
 });
 
 bot.action('admin:stats', async (ctx) => {

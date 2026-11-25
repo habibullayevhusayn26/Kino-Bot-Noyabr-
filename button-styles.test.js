@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const { Markup } = require('telegraf');
-const { homeKeyboard } = require('./src/keyboards/user');
+const { homeKeyboard, retroGamesKeyboard } = require('./src/keyboards/user');
 const { styledInlineKeyboard, styledReplyKeyboard } = require('./src/keyboards/styled');
 const { stripCustomEmoji } = require('./src/utils/premiumEmoji');
 const messages = require('./src/messages/uz');
@@ -38,7 +38,17 @@ test('the persistent home menu assigns colors to every bottom button', () => {
 
   assert.deepEqual(
     keyboard.flat().map((button) => button.style),
-    ['primary', 'primary', 'success', 'success', 'primary', 'success', 'primary', 'primary']
+    [
+      'primary',
+      'primary',
+      'primary',
+      'success',
+      'success',
+      'primary',
+      'success',
+      'primary',
+      'primary'
+    ]
   );
 });
 
@@ -63,12 +73,30 @@ test('movie sharing uses a deep link without inline query mode', () => {
   assert.equal(shareButton.switch_inline_query_current_chat, undefined);
 });
 
+test('retro football keyboard has two plain number rows', () => {
+  const games = Array.from({ length: 10 }, (_, index) => ({ code: index + 1 }));
+  const keyboard = retroGamesKeyboard(games).reply_markup.inline_keyboard;
+
+  assert.deepEqual(
+    keyboard.map((row) => row.map((button) => button.text)),
+    [
+      ['1', '2', '3', '4', '5'],
+      ['6', '7', '8', '9', '10']
+    ]
+  );
+  assert.equal(
+    keyboard.every((row) => row.every((button) => !button.icon_custom_emoji_id)),
+    true
+  );
+});
+
 test('keyboard labels stay recognizable after premium emoji replacement', () => {
   const keyboard = homeKeyboard(false).reply_markup.keyboard;
   const visibleLabels = keyboard.flat().map((button) => button.text);
 
   assert.deepEqual(visibleLabels, [
     stripCustomEmoji(messages.menuSearch),
+    stripCustomEmoji(messages.menuRetro),
     stripCustomEmoji(messages.menuGenres),
     stripCustomEmoji(messages.menuNew),
     stripCustomEmoji(messages.menuTop),

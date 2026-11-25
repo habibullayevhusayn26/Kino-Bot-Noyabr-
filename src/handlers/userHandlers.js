@@ -2,6 +2,7 @@ const messages = require('../messages/uz');
 const keyboards = require('../keyboards/user');
 const movieService = require('../services/movieService');
 const favoriteService = require('../services/favoriteService');
+const retroGameService = require('../services/retroGameService');
 const { isMessageNotModified, retryAfterLimit } = require('../utils/telegramErrors');
 const { stripCustomEmoji } = require('../utils/premiumEmoji');
 
@@ -29,6 +30,24 @@ function format(template, values) {
 }
 
 function registerUserHandlers(bot, { isAdmin, logger = console }) {
+  async function sendRetroGame(ctx, game) {
+    if (!game) return ctx.reply(messages.retroNotFound);
+    const chatId = ctx.chat?.id || ctx.from?.id;
+    const options = {
+      caption: messages.retroGameCaption(game),
+      parse_mode: 'HTML',
+      protect_content: true
+    };
+    const sender = game.mediaType === 'document' ? 'sendDocument' : 'sendVideo';
+    await retryAfterLimit(() => ctx.telegram[sender](chatId, game.fileId, options));
+    await retroGameService.incrementRetroGameViews(game._id).catch((error) => {
+      logger.error(
+        { err: error, gameId: String(game._id) },
+        'Could not increment retro game view count'
+      );
+    });
+  }
+
   async function sendMovie(ctx, movie) {
     if (!movie) return ctx.reply(messages.movieNotFound);
     const chatId = ctx.chat?.id || ctx.from?.id;
@@ -113,6 +132,16 @@ function registerUserHandlers(bot, { isAdmin, logger = console }) {
     return ctx.reply(messages.searchPrompt);
   });
 
+  bot.hears(exactButton(messages.menuRetro), async (ctx) => {
+    const games = await retroGameService.listLatestRetroGames(10);
+    if (!games.length) return ctx.reply(messages.retroEmpty);
+    ctx.session.retroGames = games;
+    return ctx.reply('⚽ <b>Oxirgi 10 ta retro futbol o‘yini</b>\n\nRaqamni tanlang:', {
+      parse_mode: 'HTML',
+      ...keyboards.retroGamesKeyboard(games).reply_markup
+    });
+  });
+
   bot.hears(exactButton(messages.menuGenres), async (ctx) => {
     const genres = await movieService.listGenres();
     if (!genres.length) return ctx.reply(messages.noGenres);
@@ -137,9 +166,17 @@ function registerUserHandlers(bot, { isAdmin, logger = console }) {
 
   bot.hears(/^\d+$/, async (ctx, next) => {
     if (isAdmin(ctx) && ctx.session?.step) return next();
+    const game = await retroGameService.findRetroGameByCode(ctx.message.text.trim());
+    if (game) return sendRetroGame(ctx, game);
     const movie = await movieService.findMovieByCode(ctx.message.text.trim());
     if (!movie) return ctx.reply(messages.movieNotFound);
     return sendMovie(ctx, movie);
+  });
+
+  bot.action(/^retro:open:(\d+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const game = await retroGameService.findRetroGameByCode(ctx.match[1]);
+    return sendRetroGame(ctx, game);
   });
 
   bot.action(/^movie:open:([a-f\d]{24})$/i, async (ctx) => {

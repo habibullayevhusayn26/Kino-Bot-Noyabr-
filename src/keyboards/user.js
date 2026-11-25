@@ -6,8 +6,9 @@ function homeKeyboard(isAdmin = false) {
   const rows = [
     [
       { text: messages.menuSearch, style: 'primary' },
-      { text: messages.menuGenres, style: 'primary' }
+      { text: messages.menuRetro, style: 'primary' }
     ],
+    [{ text: messages.menuGenres, style: 'primary' }],
     [
       { text: messages.menuNew, style: 'success' },
       { text: messages.menuTop, style: 'success' }
@@ -76,6 +77,17 @@ function genresKeyboard(genres) {
   return styledInlineKeyboard(rows);
 }
 
+function retroGamesKeyboard(games) {
+  const buttons = games.map((game, index) => ({
+    text: String(index + 1),
+    callback_data: `retro:open:${game.code}`
+  }));
+  return styledInlineKeyboard([
+    buttons.slice(0, 5).map((button) => Markup.button.callback(button.text, button.callback_data)),
+    buttons.slice(5).map((button) => Markup.button.callback(button.text, button.callback_data))
+  ]);
+}
+
 function subscriptionKeyboard(channels) {
   const rows = channels
     .map((channel) => {
@@ -101,5 +113,6 @@ module.exports = {
   movieCardKeyboard,
   movieListKeyboard,
   genresKeyboard,
+  retroGamesKeyboard,
   subscriptionKeyboard
 };

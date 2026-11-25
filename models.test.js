@@ -15,6 +15,10 @@ test('genre catalog has its own collection name', () => {
   assert.equal(models.Genre.collection.name, 'genres');
 });
 
+test('retro games have their own collection name', () => {
+  assert.equal(models.RetroGame.collection.name, 'retro_games');
+});
+
 test('movie schema requires Telegram media and defines code and title search indexes', () => {
   assert.equal(models.Movie.schema.path('fileId').isRequired, true);
   assert.equal(models.Movie.schema.path('code').options.unique, true);

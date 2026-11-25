@@ -1,8 +1,17 @@
 const { toPremiumEmojiMarkup } = require('../utils/premiumEmoji');
 
+function escapeMessageHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 module.exports = {
   welcome: '👋 Assalomu alaykum, {name}! Kino kodini yuboring yoki menyudan tanlang.',
   menuSearch: '🔎 Kino qidirish',
+  menuRetro: '⚽ Retro Futbol',
   menuGenres: '🎭 Janrlar',
   menuNew: '🆕 Yangi kinolar',
   menuTop: '🏆 Top kinolar',
@@ -19,6 +28,25 @@ module.exports = {
   chooseMovieGenre: '🎭 Kino janrini tanlang:',
   addNewGenre: '➕ Yangi janr qo‘shish',
   enterNewGenre: '🎭 Yangi janr nomini kiriting:',
+  retroTitle: '⚽ Retro Futbol',
+  retroEmpty: '⚽ Hozircha retro futbol o‘yinlari yo‘q.',
+  retroNotFound: '⚽ Bu kod bo‘yicha retro futbol o‘yini topilmadi.',
+  retroGameCaption(game) {
+    return `⚽ <b>${escapeMessageHtml(game.title)}</b>\n📅 Sana: ${escapeMessageHtml(game.date)}\n🆔 Kod: ${game.code}`;
+  },
+  adminRetroVideo: '⚽ 1/4. Retro o‘yin videosini yoki video faylini yuboring.',
+  adminRetroInvalidMedia: '⚽ Video yoki video fayl yuboring.',
+  adminRetroDate: '⚽ 2/4. O‘yin sanasini kiriting.',
+  adminRetroTitle: '⚽ 3/4. Qaysi klublar o‘ynaganini kiriting.',
+  adminRetroCode: '⚽ 4/4. Musbat va noyob o‘yin kodini kiriting.',
+  adminRetroConfirm: '✅ Retro o‘yin ma’lumotlarini tasdiqlang:',
+  adminRetroSave: '✅ Saqlash',
+  adminRetroCancel: '❌ Bekor qilish',
+  adminRetroSaved: '✅ Retro o‘yin saqlandi. Kodi: {code}',
+  adminRetroSaveFailed: '⚽ Retro o‘yin saqlanmadi. Ma’lumotlarni tekshirib, qayta urinib ko‘ring.',
+  adminRetroDuplicateCode: '⚽ Bu kod kino yoki boshqa o‘yinda ishlatilgan. Boshqa kod kiriting.',
+  adminRetroStorageFailed:
+    '⚽ O‘yin videosini saqlash kanaliga joylab bo‘lmadi. Saqlash kanalini tekshiring.',
   noGenres: 'ℹ️ Hozircha janrlar mavjud emas.',
   noMovies: '🔎 Kino topilmadi.',
   movieNotFound: '⚠️ Bu kod bo‘yicha kino topilmadi.',
