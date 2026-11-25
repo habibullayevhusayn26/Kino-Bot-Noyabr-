@@ -29,7 +29,6 @@ module.exports = {
     'ℹ️ <b>Bot imkoniyatlari</b>\n\n' +
     '🎬 Kino kodi yoki nomi bilan qidiring.\n' +
     '🎭 Janr, 🆕 yangi, 🏆 top, 🎲 tasodifiy kinolar va ❤️ sevimlilar ro‘yxatidan foydalaning.\n' +
-    '🔎 Har qanday chatda <code>@bot_username kino nomi</code> deb inline qidirishingiz mumkin.\n' +
     '❤️ Kerakli kino kartasida sevimlilarga qo‘shish/o‘chirish funksiyasi bor.\n' +
     '📢 Majburiy kanallarga obuna bo‘lishingiz shart bo‘lishi mumkin.\n\n' +
     '🛠 Adminlar uchun: kinolarni qo‘shish/tahrirlash/o‘chirish, foydalanuvchilarni boshqarish, statistika, obuna va broadcast.',

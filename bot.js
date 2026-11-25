@@ -22,6 +22,7 @@ const { registerAdminHandlers } = require('./src/handlers/adminHandlers');
 const { checkRequiredChannelMembership } = require('./src/services/subscriptionService');
 const channelService = require('./src/services/channelService');
 const movieService = require('./src/services/movieService');
+const favoriteService = require('./src/services/favoriteService');
 const { getStatistics } = require('./src/services/statsService');
 const { createAddMovieScene } = require('./src/scenes/admin/addMovie');
 const { isPollingConflict, retryAfterLimit } = require('./src/utils/telegramErrors');
@@ -29,12 +30,13 @@ const { toPremiumEmojiMarkup } = require('./src/utils/premiumEmoji');
 const { styledInlineKeyboard, styledReplyKeyboard } = require('./src/keyboards/styled');
 const {
   homeKeyboard,
-  subscriptionKeyboard: userSubscriptionKeyboard
+  subscriptionKeyboard: userSubscriptionKeyboard,
+  movieCardKeyboard
 } = require('./src/keyboards/user');
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
-const allowedUpdates = ['message', 'callback_query', 'inline_query', 'chosen_inline_result'];
+const allowedUpdates = ['message', 'callback_query'];
 const webhookPath = `/webhook/${config.webhookSecret || 'unconfigured'}`;
 const chatPickerRequestIds = { requiredChannel: 76001, requiredGroup: 76002, storage: 76003 };
 const channelAdminRights = {
@@ -742,6 +744,29 @@ async function handleStart(ctx) {
       logger.error({ err: error }, 'New subscriber notification failed');
     }
   }
+  const payload = String(ctx.startPayload || '').trim();
+  const match = /^movie_(\d+)$/.exec(payload);
+  if (match) {
+    const movie = await movieService.findMovieByCode(match[1]);
+    if (!movie) return ctx.reply(messages.movieNotFound);
+    const chatId = ctx.chat?.id || ctx.from?.id;
+    const favorite = await favoriteService.isFavorite(ctx.from.id, movie._id);
+    const options = {
+      caption: messages.movieCaption(movie, (movie.views || 0) + 1),
+      parse_mode: 'HTML',
+      protect_content: true,
+      reply_markup: movieCardKeyboard(movie, favorite, ctx.botInfo?.username).reply_markup
+    };
+    const sender = movie.mediaType === 'document' ? 'sendDocument' : 'sendVideo';
+    await retryAfterLimit(() => ctx.telegram[sender](chatId, movie.fileId, options));
+    await movieService.incrementMovieViews(movie._id).catch((error) => {
+      logger.error(
+        { err: error, movieId: String(movie._id) },
+        'Could not increment movie view count'
+      );
+    });
+    return;
+  }
   return ctx.reply(
     formatMessage(messages.welcome, ctx),
     replyOptions(welcomeMarkup(ctx) || userKeyboard(ctx).reply_markup)
@@ -1351,7 +1376,6 @@ async function startBot() {
 
     if (config.renderExternalUrl) {
       bot.botInfo = await bot.telegram.getMe();
-      warnIfInlineModeDisabled();
       const webhookUrl = new URL(webhookPath, config.renderExternalUrl).toString();
       webhookReady = true;
       await bot.telegram.setWebhook(webhookUrl, {
@@ -1361,7 +1385,7 @@ async function startBot() {
       logger.info('Telegram webhook configured');
     } else {
       await bot.telegram.deleteWebhook({ drop_pending_updates: false });
-      await bot.launch({ allowedUpdates }, warnIfInlineModeDisabled);
+      await bot.launch({ allowedUpdates });
       pollingStarted = true;
       logger.info('Telegram polling mode started');
     }
@@ -1382,15 +1406,6 @@ async function startBot() {
     }
     if (mongoose.connection.readyState !== 0) await mongoose.disconnect();
     throw error;
-  }
-}
-
-function warnIfInlineModeDisabled() {
-  if (bot.botInfo?.supports_inline_queries !== true) {
-    logger.warn(
-      { username: bot.botInfo?.username },
-      'Inline mode is disabled; enable it with /setinline in @BotFather'
-    );
   }
 }
 

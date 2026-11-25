@@ -42,6 +42,23 @@ test('the persistent home menu assigns colors to every bottom button', () => {
   );
 });
 
+test('movie sharing uses a deep link without inline query mode', () => {
+  const markup = require('./src/keyboards/user').movieCardKeyboard(
+    { _id: '507f1f77bcf86cd799439011', code: 42, title: 'Test kino' },
+    false,
+    'movie_demo_bot'
+  );
+  const shareButton = markup.reply_markup.inline_keyboard[1][0];
+
+  assert.equal(shareButton.url.includes('https://t.me/share/url?url='), true);
+  assert.equal(
+    decodeURIComponent(shareButton.url).includes('https://t.me/movie_demo_bot?start=movie_42'),
+    true
+  );
+  assert.equal(shareButton.switch_inline_query, undefined);
+  assert.equal(shareButton.switch_inline_query_current_chat, undefined);
+});
+
 test('keyboard labels stay recognizable after premium emoji replacement', () => {
   const keyboard = homeKeyboard(false).reply_markup.keyboard;
   const visibleLabels = keyboard.flat().map((button) => button.text);

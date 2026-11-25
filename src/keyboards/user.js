@@ -22,7 +22,14 @@ function homeKeyboard(isAdmin = false) {
   return styledReplyKeyboard(rows).resize();
 }
 
-function movieCardKeyboard(movie, favorite = false) {
+function movieCardKeyboard(movie, favorite = false, botUsername = '') {
+  const username = String(botUsername || '').replace(/^@/, '');
+  const deepLink = username
+    ? `https://t.me/${username}?start=movie_${encodeURIComponent(String(movie.code))}`
+    : '';
+  const shareUrl = deepLink
+    ? `https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(`🎬 ${movie.title}\nKinoni ko'rish`)}`
+    : 'https://t.me/share';
   return styledInlineKeyboard([
     [
       Markup.button.callback(
@@ -30,7 +37,7 @@ function movieCardKeyboard(movie, favorite = false) {
         `favorite:toggle:${movie._id}`
       )
     ],
-    [Markup.button.switchToCurrentChat('📤 Ulashish', String(movie.code))],
+    [Markup.button.url('📤 Ulashish', shareUrl)],
     [Markup.button.callback('🎬 O‘xshash kinolar', `movie:related:${movie._id}`)]
   ]);
 }

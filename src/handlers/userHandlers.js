@@ -1,11 +1,7 @@
-const { Markup } = require('telegraf');
 const messages = require('../messages/uz');
 const keyboards = require('../keyboards/user');
-const { styledInlineKeyboard } = require('../keyboards/styled');
-const { toPremiumEmojiMarkup } = require('../utils/premiumEmoji');
 const movieService = require('../services/movieService');
 const favoriteService = require('../services/favoriteService');
-const { checkRequiredChannelMembership } = require('../services/subscriptionService');
 const { isMessageNotModified, retryAfterLimit } = require('../utils/telegramErrors');
 const { stripCustomEmoji } = require('../utils/premiumEmoji');
 
@@ -32,7 +28,7 @@ function format(template, values) {
   return template.replace(/\{(\w+)\}/g, (_, key) => values[key] ?? '');
 }
 
-function registerUserHandlers(bot, { isAdmin, getRequiredChannels, logger = console }) {
+function registerUserHandlers(bot, { isAdmin, logger = console }) {
   async function sendMovie(ctx, movie) {
     if (!movie) return ctx.reply(messages.movieNotFound);
     const chatId = ctx.chat?.id || ctx.from?.id;
@@ -41,7 +37,7 @@ function registerUserHandlers(bot, { isAdmin, getRequiredChannels, logger = cons
       caption: messages.movieCaption(movie, (movie.views || 0) + 1),
       parse_mode: 'HTML',
       protect_content: true,
-      reply_markup: keyboards.movieCardKeyboard(movie, favorite).reply_markup
+      reply_markup: keyboards.movieCardKeyboard(movie, favorite, ctx.botInfo?.username).reply_markup
     };
     const sender = movie.mediaType === 'document' ? 'sendDocument' : 'sendVideo';
     await retryAfterLimit(() => ctx.telegram[sender](chatId, movie.fileId, options));
@@ -110,26 +106,6 @@ function registerUserHandlers(bot, { isAdmin, getRequiredChannels, logger = cons
     const cleanQuery = String(query || '').trim();
     if (!cleanQuery) return ctx.reply(messages.searchPrompt);
     return renderList(ctx, { type: 'search', query: cleanQuery, page: 1 });
-  }
-
-  async function checkInlineSubscription(ctx) {
-    if (isAdmin(ctx)) return { subscribed: true, missingChannels: [], failures: [] };
-    const channels = (await getRequiredChannels()).map((channel) => ({
-      ...channel,
-      chatId: Number(channel.chatId ?? channel.id)
-    }));
-    if (!channels.length) return { subscribed: true, missingChannels: [], failures: [] };
-    const result = await checkRequiredChannelMembership(ctx.telegram, ctx.from.id, channels);
-    for (const failure of result.failures) {
-      logger.error(
-        {
-          err: failure.error,
-          channelId: failure.channel.chatId
-        },
-        'Inline subscription check failed'
-      );
-    }
-    return result;
   }
 
   bot.hears(exactButton(messages.menuSearch), async (ctx) => {
@@ -205,7 +181,9 @@ function registerUserHandlers(bot, { isAdmin, getRequiredChannels, logger = cons
     await ctx.answerCbQuery(exists ? messages.favoriteRemoved : messages.favoriteAdded);
     if (!changed) return;
     try {
-      await ctx.editMessageReplyMarkup(keyboards.movieCardKeyboard(movie, !exists).reply_markup);
+      await ctx.editMessageReplyMarkup(
+        keyboards.movieCardKeyboard(movie, !exists, ctx.botInfo?.username).reply_markup
+      );
     } catch (error) {
       if (isMessageNotModified(error)) return;
       throw error;
@@ -220,70 +198,6 @@ function registerUserHandlers(bot, { isAdmin, getRequiredChannels, logger = cons
     if (isAdmin(ctx) && ctx.session?.step) return next();
     if (ctx.session.searchMode) ctx.session.searchMode = false;
     return showSearchResults(ctx, query);
-  });
-
-  bot.on('inline_query', async (ctx) => {
-    const subscription = await checkInlineSubscription(ctx);
-    if (!subscription.subscribed) {
-      const joinRows = subscription.missingChannels
-        .map((channel, index) => {
-          const username = String(channel.username || '').replace(/^@/, '');
-          const url = channel.inviteLink || (username ? `https://t.me/${username}` : '');
-          return url
-            ? [
-                Markup.button.url(
-                  `📢 Kanal ${index + 1}: ${channel.title || channel.username}`,
-                  url
-                )
-              ]
-            : [];
-        })
-        .filter((row) => row.length);
-      const result = joinRows.length
-        ? [
-            {
-              type: 'article',
-              id: 'subscription-required',
-              title: 'Obuna talab qilinadi',
-              input_message_content: {
-                message_text: toPremiumEmojiMarkup(messages.subscriptionRequired),
-                parse_mode: 'HTML'
-              },
-              reply_markup: styledInlineKeyboard(joinRows).reply_markup
-            }
-          ]
-        : [];
-      return ctx.answerInlineQuery(result, { cache_time: 0, is_personal: true });
-    }
-
-    const offset = Number(ctx.inlineQuery.offset);
-    const page = Number.isSafeInteger(offset) && offset >= 0 ? offset + 1 : 1;
-    const found = await movieService.searchMovies(ctx.inlineQuery.query, { page, pageSize: 10 });
-    const results = found.items.map((movie) => {
-      const common = {
-        id: `movie:${movie.code}`,
-        title: movie.title,
-        description: `${movie.year} | ${movie.genre}`,
-        caption: messages.movieCaption(movie, (movie.views || 0) + 1),
-        parse_mode: 'HTML'
-      };
-      return movie.mediaType === 'document'
-        ? { type: 'document', document_file_id: movie.fileId, ...common }
-        : { type: 'video', video_file_id: movie.fileId, ...common };
-    });
-    return ctx.answerInlineQuery(results, {
-      cache_time: 0,
-      is_personal: true,
-      next_offset: found.hasMore ? String(page) : ''
-    });
-  });
-
-  bot.on('chosen_inline_result', async (ctx) => {
-    const resultId = ctx.update.chosen_inline_result?.result_id || '';
-    const code = resultId.startsWith('movie:') ? resultId.slice('movie:'.length) : '';
-    if (!/^\d+$/.test(code)) return;
-    const movie = await movieService.findMovieByCode(code);
-    if (movie) await movieService.incrementMovieViews(movie._id);
   });
 }
 
