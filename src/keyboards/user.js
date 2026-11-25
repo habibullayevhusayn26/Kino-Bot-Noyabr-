@@ -38,7 +38,12 @@ function movieCardKeyboard(movie, favorite = false, botUsername = '') {
         `favorite:toggle:${movie._id}`
       )
     ],
-    [Markup.button.url('📤 Ulashish', shareUrl)],
+    [
+      {
+        ...Markup.button.url('📤 Do‘stga ulashish', shareUrl),
+        style: 'success'
+      }
+    ],
     [Markup.button.callback('🎬 O‘xshash kinolar', `movie:related:${movie._id}`)]
   ]);
 }

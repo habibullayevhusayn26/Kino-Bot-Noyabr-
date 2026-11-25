@@ -50,6 +50,8 @@ test('movie sharing uses a deep link without inline query mode', () => {
   );
   const shareButton = markup.reply_markup.inline_keyboard[1][0];
 
+  assert.equal(shareButton.style, 'success');
+  assert.equal(shareButton.icon_custom_emoji_id, '5974192980662160632');
   assert.equal(shareButton.url.includes('https://t.me/share/url?url='), true);
   assert.equal(
     decodeURIComponent(shareButton.url).includes('https://t.me/movie_demo_bot?start=movie_42'),
