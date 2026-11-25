@@ -7,8 +7,18 @@ const movieService = require('../services/movieService');
 const favoriteService = require('../services/favoriteService');
 const { checkRequiredChannelMembership } = require('../services/subscriptionService');
 const { isMessageNotModified, retryAfterLimit } = require('../utils/telegramErrors');
+const { stripCustomEmoji } = require('../utils/premiumEmoji');
 
 const PAGE_SIZE = 8;
+
+function exactButton(text) {
+  const original = String(text);
+  const stripped = stripCustomEmoji(original);
+  const alternatives = [...new Set([original, stripped])].map((value) =>
+    value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  );
+  return new RegExp(`^(?:${alternatives.join('|')})$`, 'u');
+}
 
 function escapeHtml(value) {
   return String(value || '')
@@ -122,29 +132,31 @@ function registerUserHandlers(bot, { isAdmin, getRequiredChannels, logger = cons
     return result;
   }
 
-  bot.hears(messages.menuSearch, async (ctx) => {
+  bot.hears(exactButton(messages.menuSearch), async (ctx) => {
     ctx.session.searchMode = true;
     return ctx.reply(messages.searchPrompt);
   });
 
-  bot.hears(messages.menuGenres, async (ctx) => {
+  bot.hears(exactButton(messages.menuGenres), async (ctx) => {
     const genres = await movieService.listGenres();
     if (!genres.length) return ctx.reply(messages.noGenres);
     ctx.session.genres = genres;
     return ctx.reply(messages.chooseGenre, keyboards.genresKeyboard(genres));
   });
 
-  bot.hears(messages.menuNew, (ctx) => renderList(ctx, { type: 'new', page: 1 }));
-  bot.hears(messages.menuTop, (ctx) => renderList(ctx, { type: 'top', page: 1 }));
-  bot.hears(messages.menuFavorites, (ctx) => renderList(ctx, { type: 'favorites', page: 1 }));
+  bot.hears(exactButton(messages.menuNew), (ctx) => renderList(ctx, { type: 'new', page: 1 }));
+  bot.hears(exactButton(messages.menuTop), (ctx) => renderList(ctx, { type: 'top', page: 1 }));
+  bot.hears(exactButton(messages.menuFavorites), (ctx) =>
+    renderList(ctx, { type: 'favorites', page: 1 })
+  );
 
-  bot.hears(messages.menuRandom, async (ctx) => {
+  bot.hears(exactButton(messages.menuRandom), async (ctx) => {
     const movie = await movieService.findRandomMovie();
     if (!movie) return ctx.reply(messages.noMovies);
     return sendMovie(ctx, movie);
   });
 
-  bot.hears(messages.menuHelp, (ctx) => ctx.reply(messages.helpText));
+  bot.hears(exactButton(messages.menuHelp), (ctx) => ctx.reply(messages.helpText));
   bot.command('help', (ctx) => ctx.reply(messages.helpText));
 
   bot.hears(/^\d+$/, async (ctx, next) => {

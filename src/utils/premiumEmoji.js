@@ -75,6 +75,13 @@ function findCustomEmoji(value) {
   return null;
 }
 
+function stripCustomEmoji(value) {
+  let text = String(value || '');
+  const match = findCustomEmoji(text);
+  if (match) text = text.replace(match.matchedText, '').trim();
+  return text;
+}
+
 function toPremiumEmojiMarkup(value) {
   return String(value || '')
     .split(customEmojiMarkupPattern)
@@ -90,4 +97,4 @@ function toPremiumEmojiMarkup(value) {
     .join('');
 }
 
-module.exports = { findCustomEmoji, toPremiumEmojiMarkup };
+module.exports = { findCustomEmoji, stripCustomEmoji, toPremiumEmojiMarkup };
