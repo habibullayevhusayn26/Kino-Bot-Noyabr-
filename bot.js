@@ -934,7 +934,7 @@ bot.action(/^admin:manage:(\d+)$/, async (ctx) => {
   );
 });
 
-bot.action(/^admin:perm:(\d+):(broadcast|stats|settings|admins)$/, async (ctx) => {
+bot.action(/^admin:perm:(\d+):(movies|users|broadcast|stats|settings|admins)$/, async (ctx) => {
   await ctx.answerCbQuery();
   if (!isOwner(ctx)) return ctx.reply("⛔ Faqat asosiy admin bu bo'limni boshqaradi.");
   const telegramId = Number(ctx.match[1]);
