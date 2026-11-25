@@ -32,7 +32,9 @@ module.exports = {
   retroEmpty: '⚽ Hozircha retro futbol o‘yinlari yo‘q.',
   retroNotFound: '⚽ Bu kod bo‘yicha retro futbol o‘yini topilmadi.',
   retroGameCaption(game) {
-    return `⚽ <b>${escapeMessageHtml(game.title)}</b>\n📅 Sana: ${escapeMessageHtml(game.date)}\n🆔 Kod: ${game.code}`;
+    const caption =
+      `⚽ <b>${escapeMessageHtml(game.title)}</b>\n📅 Sana: ${escapeMessageHtml(game.date)}\n🆔 Kod: ${game.code}`;
+    return toPremiumEmojiMarkup(caption);
   },
   adminRetroVideo: '⚽ 1/4. Retro o‘yin videosini yoki video faylini yuboring.',
   adminRetroInvalidMedia: '⚽ Video yoki video fayl yuboring.',
