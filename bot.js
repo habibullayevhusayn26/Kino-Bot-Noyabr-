@@ -818,9 +818,31 @@ async function handleStart(ctx) {
   }
   const payload = String(ctx.startPayload || '').trim();
   const match = /^movie_(\d+)$/.exec(payload);
+  if (!match) {
+    if (ctx.session) {
+      ctx.session.pendingMoviePayload = undefined;
+      ctx.session.searchMode = false;
+      ctx.session.step = undefined;
+    }
+    if (ctx.scene?.current) {
+      try {
+        await ctx.scene.leave();
+      } catch (error) {
+        logger.error({ err: error, telegramId: ctx.from?.id }, 'Could not clear stale scene');
+      }
+    }
+  }
   if (match) {
+    if (ctx.session) ctx.session.pendingMoviePayload = payload;
     const movie = await movieService.findMovieByCode(match[1]);
-    if (!movie) return ctx.reply(messages.movieNotFound);
+    if (!movie) {
+      if (ctx.session) ctx.session.pendingMoviePayload = undefined;
+      await ctx.reply(messages.movieNotFound);
+      return ctx.reply(
+        formatMessage(messages.welcome, ctx),
+        replyOptions(welcomeMarkup(ctx) || userKeyboard(ctx).reply_markup)
+      );
+    }
     const chatId = ctx.chat?.id || ctx.from?.id;
     const favorite = await favoriteService.isFavorite(ctx.from.id, movie._id);
     const options = {
