@@ -3,5 +3,6 @@ module.exports = {
   banCheckMiddleware: require('./banCheck').banCheckMiddleware,
   subscriptionCheckMiddleware: require('./subscriptionCheck').subscriptionCheckMiddleware,
   createRateLimitMiddleware: require('./rateLimit').createRateLimitMiddleware,
-  errorBoundary: require('./errorBoundary').errorBoundary
+  errorBoundary: require('./errorBoundary').errorBoundary,
+  createCommandInterruptMiddleware: require('./commandInterrupt').createCommandInterruptMiddleware
 };

@@ -106,3 +106,30 @@ test('error boundary resets an active step and sends a safe callback response', 
   assert.equal(answerText, 'Bu amal bajarilmadi.');
   assert.equal(answerExtra.show_alert, true);
 });
+
+test('global /start and /cancel commands interrupt handlers immediately', async () => {
+  const { createCommandInterruptMiddleware } = require('./src/middlewares');
+  let called = '';
+  const middleware = createCommandInterruptMiddleware({
+    onStart: async () => {
+      called = 'start';
+    },
+    onCancel: async () => {
+      called = 'cancel';
+    }
+  });
+
+  await middleware(
+    { message: { text: '/start' } },
+    async () => {
+      throw new Error('start should not continue');
+    }
+  );
+  await middleware(
+    { message: { text: '/cancel@UniversalBot' } },
+    async () => {
+      throw new Error('cancel should not continue');
+    }
+  );
+  assert.equal(called, 'cancel');
+});

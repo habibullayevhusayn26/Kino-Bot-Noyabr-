@@ -15,7 +15,8 @@ const {
   banCheckMiddleware,
   subscriptionCheckMiddleware,
   createRateLimitMiddleware,
-  errorBoundary
+  errorBoundary,
+  createCommandInterruptMiddleware
 } = require('./src/middlewares');
 const { registerUserHandlers } = require('./src/handlers/userHandlers');
 const { registerAdminHandlers } = require('./src/handlers/adminHandlers');
@@ -907,6 +908,38 @@ bot.use(async (ctx, next) => {
 
 bot.use(session({ store: persistentSessionStore }));
 
+bot.use(
+  createCommandInterruptMiddleware({
+    onStart: async (ctx) => {
+      if (ctx.session) {
+        ctx.session = {
+          pendingMoviePayload: undefined,
+          searchMode: false,
+          step: undefined,
+          adminPanelActive: isAdmin(ctx)
+        };
+      }
+      return handleStart(ctx);
+    },
+    onCancel: async (ctx) => {
+      ctx.session = isAdmin(ctx) ? { adminPanelActive: true } : {};
+      if (ctx.scene?.current) {
+        try {
+          await ctx.scene.leave();
+        } catch (error) {
+          logger.error({ err: error, telegramId: ctx.from?.id }, 'Could not leave scene on cancel');
+        }
+      }
+      await ctx.reply(
+        '✅ Amal bekor qilindi. Menyudan qayta boshlashingiz mumkin.',
+        replyOptions(isAdmin(ctx) ? adminKeyboard(ctx).reply_markup : userKeyboard(ctx).reply_markup)
+      );
+      if (isAdmin(ctx)) return ctx.reply('🛠 Admin panel', adminKeyboard(ctx));
+      return;
+    }
+  })
+);
+
 bot.use(async (ctx, next) => {
   const payload = String(ctx.startPayload || '').trim();
   if (/^movie_\d+$/.test(payload) && ctx.session) {
@@ -1619,6 +1652,7 @@ async function configureBotCommands() {
   try {
     await bot.telegram.setMyCommands([
       { command: 'start', description: 'Botni ishga tushirish va asosiy menyu' },
+      { command: 'cancel', description: 'Joriy amalni bekor qilish' },
       { command: 'help', description: 'Bot imkoniyatlari haqida yordam' },
       { command: 'admin', description: 'Administrator panelini ochish' }
     ]);
