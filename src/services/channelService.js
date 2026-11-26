@@ -1,6 +1,13 @@
 const { BotConfig, Channel } = require('../models');
 const messages = require('../messages/uz');
 
+let requiredChannelCache = { value: null, expiresAt: 0 };
+const REQUIRED_CHANNEL_CACHE_MS = 30 * 1000;
+
+function invalidateRequiredChannelCache() {
+  requiredChannelCache = { value: null, expiresAt: 0 };
+}
+
 async function verifyAdminChannel(
   telegram,
   telegramId,
@@ -90,11 +97,19 @@ async function migrateLegacyRequiredChannels() {
 }
 
 async function listRequiredChannels() {
-  return Channel.find({ isRequired: true, active: true }).sort({ createdAt: 1 }).lean();
+  if (requiredChannelCache.value && requiredChannelCache.expiresAt > Date.now()) {
+    return requiredChannelCache.value;
+  }
+  const channels = await Channel.find({ isRequired: true, active: true }).sort({ createdAt: 1 }).lean();
+  requiredChannelCache = {
+    value: channels,
+    expiresAt: Date.now() + REQUIRED_CHANNEL_CACHE_MS
+  };
+  return channels;
 }
 
 async function addRequiredChannel(channel, addedBy) {
-  return Channel.findOneAndUpdate(
+  const result = await Channel.findOneAndUpdate(
     { chatId: Number(channel.chatId) },
     {
       $set: {
@@ -109,15 +124,19 @@ async function addRequiredChannel(channel, addedBy) {
     },
     { upsert: true, returnDocument: 'after', runValidators: true }
   ).lean();
+  invalidateRequiredChannelCache();
+  return result;
 }
 
 async function removeRequiredChannel(chatId) {
   const result = await Channel.deleteOne({ chatId: Number(chatId), isRequired: true });
+  invalidateRequiredChannelCache();
   return result.deletedCount === 1;
 }
 
 async function clearRequiredChannels() {
   const result = await Channel.deleteMany({ isRequired: true });
+  invalidateRequiredChannelCache();
   return result.deletedCount;
 }
 

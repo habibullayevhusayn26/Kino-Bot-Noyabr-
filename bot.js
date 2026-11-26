@@ -393,19 +393,45 @@ function userKeyboard(ctx) {
   return homeKeyboard(isAdmin(ctx));
 }
 
+const sessionCache = new Map();
+const sessionWriteTimers = new Map();
+const maxCachedSessions = 10000;
+
 const persistentSessionStore = {
   async get(key) {
+    if (sessionCache.has(key)) return sessionCache.get(key);
     const record = await Session.findOne({ key }).lean();
-    return record?.data;
+    const value = record?.data;
+    if (value) {
+      while (sessionCache.size >= maxCachedSessions) {
+        sessionCache.delete(sessionCache.keys().next().value);
+      }
+      sessionCache.set(key, value);
+    }
+    return value;
   },
   async set(key, value) {
-    await Session.findOneAndUpdate(
-      { key },
-      { $set: { data: value, updatedAt: new Date() } },
-      { upsert: true }
-    );
+    while (sessionCache.size >= maxCachedSessions) {
+      sessionCache.delete(sessionCache.keys().next().value);
+    }
+    sessionCache.set(key, value);
+    const existingTimer = sessionWriteTimers.get(key);
+    if (existingTimer) clearTimeout(existingTimer);
+    const timer = setTimeout(() => {
+      sessionWriteTimers.delete(key);
+      Session.findOneAndUpdate(
+        { key },
+        { $set: { data: sessionCache.get(key) || {}, updatedAt: new Date() } },
+        { upsert: true }
+      ).catch((error) => logger.error({ err: error, key }, 'Could not persist session'));
+    }, 250);
+    sessionWriteTimers.set(key, timer);
   },
   async delete(key) {
+    sessionCache.delete(key);
+    const existingTimer = sessionWriteTimers.get(key);
+    if (existingTimer) clearTimeout(existingTimer);
+    sessionWriteTimers.delete(key);
     await Session.deleteOne({ key });
   }
 };
@@ -1523,6 +1549,20 @@ async function startBot() {
   config.validateConfig();
 
   httpServer = app.listen(port, '0.0.0.0');
+  if (config.renderExternalUrl) {
+    const keepAliveTimer = setInterval(
+      () => {
+        fetch(`${config.renderExternalUrl.replace(/\/$/, '')}/health`, {
+          cache: 'no-store',
+          signal: AbortSignal.timeout(5000)
+        }).catch((error) =>
+          logger.warn({ err: error }, 'Render keep-alive request failed')
+        );
+      },
+      10 * 60 * 1000
+    );
+    keepAliveTimer.unref?.();
+  }
   try {
     await new Promise((resolve, reject) => {
       httpServer.once('listening', resolve);
