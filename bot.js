@@ -23,6 +23,7 @@ const { checkRequiredChannelMembership } = require('./src/services/subscriptionS
 const channelService = require('./src/services/channelService');
 const movieService = require('./src/services/movieService');
 const favoriteService = require('./src/services/favoriteService');
+const { sendStoredMedia } = require('./src/services/mediaStorageService');
 const { getStatistics } = require('./src/services/statsService');
 const { createAddMovieScene } = require('./src/scenes/admin/addMovie');
 const { createAddRetroGameScene } = require('./src/scenes/admin/addRetroGame');
@@ -796,8 +797,15 @@ async function handleStart(ctx) {
       protect_content: true,
       reply_markup: movieCardKeyboard(movie, favorite, ctx.botInfo?.username).reply_markup
     };
-    const sender = movie.mediaType === 'document' ? 'sendDocument' : 'sendVideo';
-    await retryAfterLimit(() => ctx.telegram[sender](chatId, movie.fileId, options));
+    await retryAfterLimit(() =>
+      sendStoredMedia({
+        telegram: ctx.telegram,
+        chatId,
+        fileId: movie.fileId,
+        mediaType: movie.mediaType,
+        options
+      })
+    );
     await movieService.incrementMovieViews(movie._id).catch((error) => {
       logger.error(
         { err: error, movieId: String(movie._id) },
@@ -904,8 +912,15 @@ bot.action('check_subscription', async (ctx) => {
           ctx.botInfo?.username || bot.botInfo?.username
         ).reply_markup
       };
-      const sender = movie.mediaType === 'document' ? 'sendDocument' : 'sendVideo';
-      await retryAfterLimit(() => ctx.telegram[sender](chatId, movie.fileId, options));
+      await retryAfterLimit(() =>
+        sendStoredMedia({
+          telegram: ctx.telegram,
+          chatId,
+          fileId: movie.fileId,
+          mediaType: movie.mediaType,
+          options
+        })
+      );
       await movieService.incrementMovieViews(movie._id).catch((error) => {
         logger.error(
           { err: error, movieId: String(movie._id) },

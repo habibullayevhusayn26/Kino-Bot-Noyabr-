@@ -3,6 +3,7 @@ const keyboards = require('../keyboards/user');
 const movieService = require('../services/movieService');
 const favoriteService = require('../services/favoriteService');
 const retroGameService = require('../services/retroGameService');
+const { sendStoredMedia } = require('../services/mediaStorageService');
 const { isMessageNotModified, retryAfterLimit } = require('../utils/telegramErrors');
 const { stripCustomEmoji } = require('../utils/premiumEmoji');
 
@@ -38,8 +39,15 @@ function registerUserHandlers(bot, { isAdmin, logger = console }) {
       parse_mode: 'HTML',
       protect_content: !isAdmin(ctx)
     };
-    const sender = game.mediaType === 'document' ? 'sendDocument' : 'sendVideo';
-    await retryAfterLimit(() => ctx.telegram[sender](chatId, game.fileId, options));
+    await retryAfterLimit(() =>
+      sendStoredMedia({
+        telegram: ctx.telegram,
+        chatId,
+        fileId: game.fileId,
+        mediaType: game.mediaType,
+        options
+      })
+    );
     await retroGameService.incrementRetroGameViews(game._id).catch((error) => {
       logger.error(
         { err: error, gameId: String(game._id) },
@@ -58,8 +66,15 @@ function registerUserHandlers(bot, { isAdmin, logger = console }) {
       protect_content: !isAdmin(ctx),
       reply_markup: keyboards.movieCardKeyboard(movie, favorite, ctx.botInfo?.username).reply_markup
     };
-    const sender = movie.mediaType === 'document' ? 'sendDocument' : 'sendVideo';
-    await retryAfterLimit(() => ctx.telegram[sender](chatId, movie.fileId, options));
+    await retryAfterLimit(() =>
+      sendStoredMedia({
+        telegram: ctx.telegram,
+        chatId,
+        fileId: movie.fileId,
+        mediaType: movie.mediaType,
+        options
+      })
+    );
     try {
       await movieService.incrementMovieViews(movie._id);
     } catch (error) {
