@@ -167,8 +167,10 @@ function registerUserHandlers(bot, { isAdmin, logger = console }) {
     return sendMovie(ctx, movie);
   });
 
-  bot.hears(exactButton(messages.menuHelp), (ctx) => ctx.reply(messages.helpText));
-  bot.command('help', (ctx) => ctx.reply(messages.helpText));
+  bot.hears(exactButton(messages.menuHelp), (ctx) =>
+    ctx.reply(messages.helpText, { parse_mode: 'HTML' })
+  );
+  bot.command('help', (ctx) => ctx.reply(messages.helpText, { parse_mode: 'HTML' }));
 
   bot.hears(/^\d+$/, async (ctx, next) => {
     if (isAdmin(ctx) && ctx.session?.step) return next();

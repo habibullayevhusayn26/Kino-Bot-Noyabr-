@@ -55,12 +55,20 @@ module.exports = {
   favoriteAdded: '❤️ Sevimlilarga qo‘shildi.',
   favoriteRemoved: '💔 Sevimlilardan olib tashlandi.',
   emptyFavorites: '📭 Sevimlilar ro‘yxatingiz hozircha bo‘sh.',
-  helpText:
-    'ℹ️ <b>Bot imkoniyatlari</b>\n\n' +
-    '🎬 Kino kodi yoki nomi bilan qidiring.\n' +
-    '🎭 Janr, 🆕 yangi, 🏆 top, 🎲 tasodifiy kinolar va ❤️ sevimlilar ro‘yxatidan foydalaning.\n' +
-    '❤️ Kerakli kino kartasida sevimlilarga qo‘shish/o‘chirish funksiyasi bor.\n' +
-    '📢 Majburiy kanallarga obuna bo‘lishingiz shart bo‘lishi mumkin.',
+  helpText: toPremiumEmojiMarkup(
+    '<b>Bot imkoniyatlari</b>\n\n' +
+      '🎬 Kino kodini yoki nomini qidirish\n' +
+      '🎭 Janrlar bo‘yicha kino tanlash\n' +
+      '🆕 Yangi kinolar ro‘yxati\n' +
+      '🏆 Eng ko‘p ko‘rilgan top kinolar\n' +
+      '🎲 Tasodifiy kino olish\n' +
+      '❤️ Sevimlilar ro‘yxati\n' +
+      '🎬 O‘xshash kinolarni ko‘rish\n' +
+      '📤 Kinoni do‘stlarga ulashish\n' +
+      '⚽ Retro-futbol o‘yinlarini ko‘rish\n' +
+      '📢 Majburiy kanallarga obuna bo‘lish\n\n' +
+      '<b>Asosiy vazifa:</b> kino va retro-futbol videolarini kod, nom yoki menyu orqali tez topish, ko‘rish va ulashish.'
+  ),
   noAccess: '⛔ Bu amal uchun ruxsatingiz yo‘q.',
   adminAddMovieMedia: '🎬 1/7. Videoni yuboring yoki saqlash kanalidan forward qiling.',
   adminAddMovieInvalidMedia: '⚠️ Video yoki video fayl yuboring.',
