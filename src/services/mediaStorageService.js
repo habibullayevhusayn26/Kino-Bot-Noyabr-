@@ -1,3 +1,5 @@
+const { retryAfterLimit } = require('../utils/telegramErrors');
+
 async function storeTelegramMedia({
   telegram,
   chatId,
@@ -11,7 +13,35 @@ async function storeTelegramMedia({
     throw new Error('A private Telegram storage channel has not been configured.');
   }
 
-  const storedMessage = await telegram.forwardMessage(storageChannelId, chatId, messageId);
+  let storedMessage;
+  try {
+    storedMessage = await retryAfterLimit(() =>
+      telegram.forwardMessage(storageChannelId, chatId, messageId)
+    );
+  } catch (forwardError) {
+    const sender = mediaType === 'document' ? 'sendDocument' : 'sendVideo';
+    const fallbackSender = sender === 'sendVideo' ? 'sendDocument' : 'sendVideo';
+    try {
+      storedMessage = await retryAfterLimit(() =>
+        telegram[sender](storageChannelId, media.file_id)
+      );
+    } catch {
+      try {
+        storedMessage = await retryAfterLimit(() =>
+          telegram[fallbackSender](storageChannelId, media.file_id)
+        );
+      } catch (fallbackError) {
+        const telegramDescription =
+          fallbackError.response?.description || forwardError.response?.description;
+        if (telegramDescription) {
+          const error = new Error(`Telegram media storage failed: ${telegramDescription}`);
+          error.response = fallbackError.response || forwardError.response;
+          throw error;
+        }
+        throw fallbackError;
+      }
+    }
+  }
   const fileId =
     mediaType === 'video'
       ? storedMessage.video?.file_id || storedMessage.document?.file_id

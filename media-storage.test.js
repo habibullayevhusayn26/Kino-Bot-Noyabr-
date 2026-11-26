@@ -82,3 +82,30 @@ test('stored media falls back to document delivery when video delivery rejects t
     ['sendDocument', 10, 'stored-file-id', { caption: 'Movie' }]
   ]);
 });
+
+test('storage forwards media, but resends it directly if forwarding is rejected', async () => {
+  const calls = [];
+  const fileId = await storeTelegramMedia({
+    telegram: {
+      async forwardMessage(...args) {
+        calls.push(['forwardMessage', ...args]);
+        throw new Error('chat not found');
+      },
+      async sendVideo(...args) {
+        calls.push(['sendVideo', ...args]);
+        return { video: { file_id: 'copied-video-id' } };
+      }
+    },
+    chatId: 10,
+    messageId: 20,
+    media: { file_id: 'source-video-id' },
+    mediaType: 'video',
+    storageChannelId: -1001
+  });
+
+  assert.equal(fileId, 'copied-video-id');
+  assert.deepEqual(calls, [
+    ['forwardMessage', -1001, 10, 20],
+    ['sendVideo', -1001, 'source-video-id']
+  ]);
+});
