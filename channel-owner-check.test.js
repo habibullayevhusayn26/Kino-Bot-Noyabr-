@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const { verifyAdminChannel, approveChannelJoinRequest } = require('./src/services/channelService');
+const { checkRequiredChannelMembership } = require('./src/services/subscriptionService');
 
 test('required channel setup only succeeds when the requesting user and bot are admins', async () => {
   const calls = [];
@@ -115,4 +116,49 @@ test('chat join request is approved and welcome message is sent', async () => {
   assert.equal(calls[1][1], 77);
   assert.equal(calls[1][2], 'Kanal tasdiqlandi');
   assert.deepEqual(calls[1][3], { parse_mode: 'HTML', reply_markup: { keyboard: [] } });
+});
+
+test('join request already approved by Telegram is treated as successful', async () => {
+  let welcomeSent = false;
+  const telegram = {
+    async approveChatJoinRequest() {
+      const error = new Error('Bad Request: USER_ALREADY_PARTICIPANT');
+      error.response = {
+        error_code: 400,
+        description: 'Bad Request: USER_ALREADY_PARTICIPANT'
+      };
+      throw error;
+    },
+    async sendMessage() {
+      welcomeSent = true;
+    }
+  };
+
+  const result = await approveChannelJoinRequest(
+    telegram,
+    { chat: { id: -1001234567890 }, from: { id: 77 } },
+    { welcomeText: 'Xush kelibsiz' }
+  );
+  assert.deepEqual(result, { chatId: -1001234567890, userId: 77 });
+  assert.equal(welcomeSent, true);
+});
+
+test('membership verification retries briefly when Telegram has not updated the join status', async () => {
+  let calls = 0;
+  let waits = 0;
+  const result = await checkRequiredChannelMembership(
+    {
+      async getChatMember() {
+        calls += 1;
+        return { status: calls === 1 ? 'left' : 'member' };
+      }
+    },
+    77,
+    [{ chatId: -1001234567890 }],
+    { wait: async () => waits += 1, retryDelayMs: 1 }
+  );
+
+  assert.equal(result.subscribed, true);
+  assert.equal(calls, 2);
+  assert.equal(waits, 1);
 });

@@ -151,7 +151,16 @@ async function approveChannelJoinRequest(
     throw new Error('Invalid chat join request');
   }
 
-  await telegram.approveChatJoinRequest(chatId, userId);
+  try {
+    await telegram.approveChatJoinRequest(chatId, userId);
+  } catch (error) {
+    const description = String(error.response?.description || error.message || '').toLowerCase();
+    const alreadyParticipant =
+      error.response?.error_code === 400 &&
+      (description.includes('user_already_participant') ||
+        description.includes('user is already a participant'));
+    if (!alreadyParticipant) throw error;
+  }
   if (welcomeText) {
     await telegram.sendMessage(userId, welcomeText, {
       parse_mode: 'HTML',
