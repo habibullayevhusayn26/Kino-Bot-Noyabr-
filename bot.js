@@ -27,7 +27,11 @@ const { sendStoredMedia } = require('./src/services/mediaStorageService');
 const { getStatistics } = require('./src/services/statsService');
 const { createAddMovieScene } = require('./src/scenes/admin/addMovie');
 const { createAddRetroGameScene } = require('./src/scenes/admin/addRetroGame');
-const { isPollingConflict, retryAfterLimit } = require('./src/utils/telegramErrors');
+const {
+  isPollingConflict,
+  isExpiredCallbackError,
+  retryAfterLimit
+} = require('./src/utils/telegramErrors');
 const { toPremiumEmojiMarkup } = require('./src/utils/premiumEmoji');
 const { styledInlineKeyboard, styledReplyKeyboard } = require('./src/keyboards/styled');
 const {
@@ -86,6 +90,34 @@ app.get('/health', (req, res) =>
 );
 
 const bot = new Telegraf(config.botToken);
+
+bot.catch(async (error, ctx) => {
+  logger.error(
+    {
+      err: error,
+      updateType: ctx?.updateType,
+      telegramId: ctx?.from?.id
+    },
+    'Unhandled Telegram update error'
+  );
+  if (ctx?.session) ctx.session.step = undefined;
+  try {
+    if (ctx?.callbackQuery) {
+      await ctx.answerCbQuery(messages.genericError, { show_alert: true });
+    } else if (ctx?.from?.id && ctx?.chat?.type === 'private') {
+      await ctx.telegram.sendMessage(ctx.from.id, messages.genericError, {
+        protect_content: !isAdmin(ctx)
+      });
+    }
+  } catch (replyError) {
+    if (!isExpiredCallbackError(replyError)) {
+      logger.error(
+        { err: replyError, telegramId: ctx?.from?.id },
+        'Could not notify user after an update error'
+      );
+    }
+  }
+});
 
 bot.on('chat_join_request', async (ctx) => {
   const joinRequest = ctx.update?.chat_join_request;
@@ -845,6 +877,21 @@ bot.use(async (ctx, next) => {
     }
     return reply(formattedText, options);
   };
+  return next();
+});
+
+bot.use(async (ctx, next) => {
+  if (ctx.answerCbQuery) {
+    const answerCbQuery = ctx.answerCbQuery.bind(ctx);
+    ctx.answerCbQuery = async (text, extra) => {
+      try {
+        return await answerCbQuery(text, extra);
+      } catch (error) {
+        if (isExpiredCallbackError(error)) return false;
+        throw error;
+      }
+    };
+  }
   return next();
 });
 

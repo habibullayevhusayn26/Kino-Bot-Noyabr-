@@ -21,6 +21,14 @@ function isPollingConflict(error) {
   );
 }
 
+function isExpiredCallbackError(error) {
+  const description = String(error.response?.description || '').toLowerCase();
+  return (
+    error.response?.error_code === 400 &&
+    (description.includes('query is too old') || description.includes('query id is invalid'))
+  );
+}
+
 async function retryAfterLimit(operation, { maxRetries = 5, sleep = delay } = {}) {
   let retries = 0;
   while (true) {
@@ -43,5 +51,6 @@ module.exports = {
   getRetryAfterSeconds,
   isMessageNotModified,
   isPollingConflict,
+  isExpiredCallbackError,
   retryAfterLimit
 };

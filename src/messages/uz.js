@@ -150,7 +150,8 @@ module.exports = {
   subscriptionRequired: '📢 Botdan foydalanish uchun quyidagi kanallarga obuna bo‘ling.',
   subscriptionCheckFailed:
     '⚠️ Obunani tekshirishda xatolik yuz berdi. Keyinroq qayta urinib ko‘ring.',
-  genericError: '⚠️ Texnik xatolik yuz berdi. Iltimos, qaytadan urinib ko‘ring.',
+  genericError:
+    '⚠️ Bu amal bajarilmadi. Iltimos, boshqa tugmani tanlab yoki /start buyrug‘ini yuboring.',
   movieCaption(movie, views) {
     const escapeHtml = (value) =>
       String(value || '')

@@ -51,3 +51,58 @@ test('registration middleware attaches user data before continuing', async () =>
   assert.equal(ctx.isNewUser, true);
   assert.equal(continued, true);
 });
+
+test('subscription check failures become safe replies instead of update exceptions', async () => {
+  const { subscriptionCheckMiddleware } = require('./src/middlewares');
+  let replyText;
+  const middleware = subscriptionCheckMiddleware({
+    isAdmin: () => false,
+    listChannels: async () => {
+      throw new Error('sensitive database detail');
+    },
+    buildKeyboard: () => ({ inline_keyboard: [] }),
+    texts: { subscriptionCheckFailed: 'Obunani tekshirib bo‘lmadi.' },
+    logger: { error() {} }
+  });
+  const ctx = {
+    from: { id: 7 },
+    chat: { type: 'private' },
+    reply: async (text) => {
+      replyText = text;
+    }
+  };
+
+  await middleware(ctx, async () => {
+    throw new Error('next should not run');
+  });
+  assert.equal(replyText, 'Obunani tekshirib bo‘lmadi.');
+});
+
+test('error boundary resets an active step and sends a safe callback response', async () => {
+  const { errorBoundary } = require('./src/middlewares');
+  let answerText;
+  let answerExtra;
+  const middleware = errorBoundary({
+    logger: { error() {} },
+    texts: { genericError: 'Bu amal bajarilmadi.' },
+    isAdmin: () => false
+  });
+  const ctx = {
+    updateType: 'callback_query',
+    from: { id: 7 },
+    chat: { type: 'private' },
+    session: { step: 'admin_movie_edit_value' },
+    callbackQuery: { data: 'admin:movie:show:1' },
+    answerCbQuery: async (text, extra) => {
+      answerText = text;
+      answerExtra = extra;
+    }
+  };
+
+  await middleware(ctx, async () => {
+    throw new Error('database credential detail');
+  });
+  assert.equal(ctx.session.step, undefined);
+  assert.equal(answerText, 'Bu amal bajarilmadi.');
+  assert.equal(answerExtra.show_alert, true);
+});

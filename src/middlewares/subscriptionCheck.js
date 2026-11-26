@@ -19,10 +19,22 @@ function subscriptionCheckMiddleware({
       return next();
     }
 
-    const channels = await listChannels();
+    let channels;
+    try {
+      channels = await listChannels();
+    } catch (error) {
+      logger.error({ err: error, telegramId: ctx.from.id }, 'Could not load required channels');
+      return ctx.reply(texts.subscriptionCheckFailed);
+    }
     if (!channels.length) return next();
 
-    const result = await checkMembership(ctx.telegram, ctx.from.id, channels);
+    let result;
+    try {
+      result = await checkMembership(ctx.telegram, ctx.from.id, channels);
+    } catch (error) {
+      logger.error({ err: error, telegramId: ctx.from.id }, 'Required channel membership check failed');
+      return ctx.reply(texts.subscriptionCheckFailed);
+    }
     for (const failure of result.failures) {
       logger.error(
         {

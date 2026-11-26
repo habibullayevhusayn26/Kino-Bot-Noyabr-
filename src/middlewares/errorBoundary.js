@@ -1,12 +1,6 @@
 const messages = require('../messages/uz');
 
-function isExpiredCallbackError(error) {
-  const description = String(error.response?.description || '').toLowerCase();
-  return (
-    error.response?.error_code === 400 &&
-    (description.includes('query is too old') || description.includes('query id is invalid'))
-  );
-}
+const { isExpiredCallbackError } = require('../utils/telegramErrors');
 
 function errorBoundary({ logger = console, texts = messages, isAdmin = () => false } = {}) {
   return async (ctx, next) => {
@@ -21,6 +15,17 @@ function errorBoundary({ logger = console, texts = messages, isAdmin = () => fal
         },
         'Telegram update failed'
       );
+
+      if (ctx.session) {
+        ctx.session.step = undefined;
+      }
+      if (ctx.scene?.current) {
+        try {
+          await ctx.scene.leave();
+        } catch (sceneError) {
+          logger.error({ err: sceneError, telegramId: ctx.from?.id }, 'Could not reset scene');
+        }
+      }
 
       try {
         if (ctx.callbackQuery) {

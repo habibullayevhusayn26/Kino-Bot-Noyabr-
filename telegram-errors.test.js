@@ -4,6 +4,7 @@ const {
   getRetryAfterSeconds,
   isMessageNotModified,
   isPollingConflict,
+  isExpiredCallbackError,
   retryAfterLimit
 } = require('./src/utils/telegramErrors');
 
@@ -58,5 +59,20 @@ test('Telegram polling conflict is recognized without matching other 409 errors'
       response: { error_code: 409, description: 'Conflict: webhook is active' }
     }),
     false
+  );
+});
+
+test('expired Telegram callbacks are recognized and do not become visible errors', () => {
+  assert.equal(
+    isExpiredCallbackError({
+      response: { error_code: 400, description: 'Bad Request: query is too old and response timeout expired' }
+    }),
+    true
+  );
+  assert.equal(
+    isExpiredCallbackError({
+      response: { error_code: 400, description: 'Bad Request: query ID is invalid' }
+    }),
+    true
   );
 });
